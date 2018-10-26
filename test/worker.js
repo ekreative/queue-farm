@@ -23,32 +23,38 @@ describe('Worker', () => {
       let count = 0
       let startCount = 0
       let finishCount = 0
+      let allEmptyCount = 0
 
       const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
         count++
-        assert.equal('my:queue', queue)
-        assert.equal('data', job)
+        assert.equal(queue, 'my:queue')
+        assert.equal(job, 'data')
       })
 
       w.on('start', (queue, eventJobId) => {
         startCount++
-        assert.equal(jobId, eventJobId)
-        assert.equal('my:queue', queue)
+        assert.equal(eventJobId, jobId)
+        assert.equal(queue, 'my:queue')
       })
 
       w.on('finish', (queue, eventJobId) => {
         finishCount++
-        assert.equal(jobId, eventJobId)
-        assert.equal('my:queue', queue)
+        assert.equal(eventJobId, jobId)
+        assert.equal(queue, 'my:queue')
+      })
+
+      w.on('all-empty', () => {
+        allEmptyCount++
       })
 
       await w.drain()
-      assert.equal(1, count)
-      assert.equal(1, startCount)
-      assert.equal(1, finishCount)
-      assert.equal(0, await r.llen('test:queue:my:queue'))
-      assert.equal(0, await r.llen('test:active:my:queue'))
-      assert.deepEqual({}, await r.hgetall(`test:job:${jobId}`))
+      assert.equal(count, 1)
+      assert.equal(startCount, 1)
+      assert.equal(finishCount, 1)
+      assert.equal(allEmptyCount, 1)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
+      assert.deepEqual(await r.hgetall(`test:job:${jobId}`), {})
     })
 
     it('should emit the jobs from multiple queues', async () => {
@@ -64,15 +70,15 @@ describe('Worker', () => {
         if (!expecting[queue]) {
           assert.fail('Unexpected queue')
         }
-        assert.equal(expecting[queue].job, job)
+        assert.equal(job, expecting[queue].job)
         expecting[queue].count++
       })
       await w.drain()
-      assert.equal(2, count)
-      assert.equal(1, expecting['my:queue'].count)
-      assert.equal(1, expecting['another:queue'].count)
-      assert.equal(0, await r.llen('test:queue:my:queue'))
-      assert.equal(0, await r.llen('test:queue:another:queue'))
+      assert.equal(count, 2)
+      assert.equal(expecting['my:queue'].count, 1)
+      assert.equal(expecting['another:queue'].count, 1)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:queue:another:queue'), 0)
     })
 
     it('should emit the jobs from multiple queues in order', async () => {
@@ -90,19 +96,19 @@ describe('Worker', () => {
         if (expecting[queue] === null) {
           assert.fail('Unexpected queue')
         }
-        assert.equal(expecting[queue], job)
+        assert.equal(job, expecting[queue])
         expecting[queue]++
       })
       await w.drain()
-      assert.equal(4, count)
-      assert.equal(2, expecting['my:queue'])
-      assert.equal(2, expecting['another:queue'])
-      assert.equal(0, await r.llen('test:queue:my:queue'))
-      assert.equal(0, await r.llen('test:queue:another:queue'))
+      assert.equal(count, 4)
+      assert.equal(expecting['my:queue'], 2)
+      assert.equal(expecting['another:queue'], 2)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:queue:another:queue'), 0)
     })
 
     it('should emit the jobs in order to multiple workers', async function () {
-      this.timeout(5000)
+      this.timeout(10000)
 
       const m = queues.createManager({ namespace: 'test', redis: r })
       let expecting = {}
@@ -120,7 +126,7 @@ describe('Worker', () => {
         if (expecting[queue] === null) {
           assert.fail('Unexpected queue')
         }
-        assert.equal(expecting[queue], job)
+        assert.equal(job, expecting[queue])
         expecting[queue]++
       }
 
@@ -131,11 +137,11 @@ describe('Worker', () => {
       }
       await Promise.all(workers.map(w => w.drain()))
 
-      assert.equal(1000, count)
+      assert.equal(count, 1000)
       for (let i = 0; i < 10; i++) {
-        assert.equal(100, expecting[`q:${i}`])
-        assert.equal(0, await r.llen(`test:queue:q:${i}`))
-        assert.equal(0, await r.llen(`test:active:q:${i}`))
+        assert.equal(expecting[`q:${i}`], 100)
+        assert.equal(await r.llen(`test:queue:q:${i}`), 0)
+        assert.equal(await r.llen(`test:active:q:${i}`), 0)
       }
 
       workers.map(w => w.redis.quit())
@@ -160,14 +166,14 @@ describe('Worker', () => {
 
       w.on('handler-error', (queue, jobId, err) => {
         handlerErrorCount++
-        assert.equal('my:queue', queue)
+        assert.equal(queue, 'my:queue')
       })
 
       await w.drain()
-      assert.equal(4, count)
-      assert.equal(2, handlerErrorCount)
-      assert.equal(0, await r.llen('test:queue:my:queue'))
-      assert.equal(0, await r.llen('test:active:my:queue'))
+      assert.equal(count, 4)
+      assert.equal(handlerErrorCount, 2)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
     })
 
     it('should retry a failed job 3 times', async () => {
@@ -185,24 +191,140 @@ describe('Worker', () => {
 
       w.on('handler-error', (queue, jobId, err) => {
         handlerErrorCount++
-        assert.equal('my:queue', queue)
+        assert.equal(queue, 'my:queue')
       })
 
       w.on('retry-limit', (queue, jobId, job) => {
         retryErrorCount++
-        assert.equal('my:queue', queue)
+        assert.equal(queue, 'my:queue')
       })
 
       await w.drain()
-      assert.equal(3, count)
-      assert.equal(3, handlerErrorCount)
-      assert.equal(1, retryErrorCount)
-      assert.equal(0, await r.llen('test:queue:my:queue'))
-      assert.equal(0, await r.llen('test:active:my:queue'))
-      assert.deepEqual({}, await r.hgetall(`test:job:${jobId}`))
+      assert.equal(count, 3)
+      assert.equal(handlerErrorCount, 3)
+      assert.equal(retryErrorCount, 1)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
+      assert.deepEqual(await r.hgetall(`test:job:${jobId}`), {})
     })
 
-    it('should stop', async () => {
+    it('should retry timeout jobs', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      await m.push('my:queue', 0)
+
+      // Simulate taking it off the queue
+      await r
+        .multi()
+        .rpoplpush('test:queue:my:queue', 'test:active:my:queue')
+        .set('test:active:my:queue:fetchAt', Date.now() - 31000)
+        .exec()
+
+      let count = 0
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+        count++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+    })
+
+    it('should retry timeout jobs when no fetchAt', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      await m.push('my:queue', 0)
+
+      // Simulate taking it off the queue, but not writing fetchAt
+      // This really cannot happen because of multi
+      await r
+        .multi()
+        .rpoplpush('test:queue:my:queue', 'test:active:my:queue')
+        .exec()
+
+      let count = 0
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+        count++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+    })
+
+    it('should emit no active queues', async () => {
+      let count = 0
+      let noActiveQueuesCount = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+        count++
+      })
+
+      w.on('no-active-queues', () => {
+        noActiveQueuesCount++
+      })
+
+      await w.drain()
+      assert.equal(noActiveQueuesCount, 1)
+      assert.equal(count, 0)
+    })
+
+    it('should clear empty queues from active list', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      await m.push('my:queue', 0)
+
+      let count = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, checkEmptyIterations: 1 }, async (queue, job) => {
+        count++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+      assert.equal(await r.scard('test:active'), 0)
+    })
+
+    it('should emit an error when job data is missing', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      const jobId = await m.push('my:queue', 0)
+
+      await r.del(`test:job:${jobId}`)
+
+      let count = 0
+      let errorCount = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+        count++
+      })
+
+      w.on('error', (queue, errJobId) => {
+        errorCount++
+        assert.equal(queue, 'my:queue')
+        assert.equal(errJobId, jobId)
+      })
+
+      await w.drain()
+      assert.equal(count, 0)
+      assert.equal(errorCount, 1)
+    })
+
+    it('should not delete the job when deleting is disabled', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      const jobId = await m.push('my:queue', 'data')
+
+      let count = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, deleteJobs: false }, async (queue, job) => {
+        count++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
+      assert.equal(await r.llen('test:finish:my:queue'), 1)
+      assert.ok(await r.hget(`test:job:${jobId}`, 'finishAt'))
+    })
+  })
+
+  describe('#stop()', () => {
+    it('should stop dequeuing jobs', async () => {
       const m = queues.createManager({ namespace: 'test', redis: r })
       await m.push('my:queue', 0)
       await m.push('my:queue', 1)
@@ -217,7 +339,7 @@ describe('Worker', () => {
       })
 
       await w.listen()
-      assert.equal(1, count)
+      assert.equal(count, 1)
     })
   })
 })
