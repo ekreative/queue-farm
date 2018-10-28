@@ -2,6 +2,7 @@
 const assert = require('assert').strict
 const Redis = require('ioredis')
 const queues = require('../index')
+const sleep = require('../lib/sleep')
 
 describe('Worker', () => {
   let r
@@ -93,6 +94,7 @@ describe('Worker', () => {
 
       const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
         count++
+        await sleep(Math.random() * 10)
         if (expecting[queue] === null) {
           assert.fail('Unexpected queue')
         }
@@ -107,8 +109,49 @@ describe('Worker', () => {
       assert.equal(await r.llen('test:queue:another:queue'), 0)
     })
 
-    it('should emit the jobs in order to multiple workers', async function () {
+    it('should emit the jobs from multiple queues in order with concurrency', async function () {
       this.timeout(10000)
+
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      let expecting = {}
+      for (let i = 0; i < 20; i++) {
+        expecting[`q:${i}`] = 0
+        for (let j = 0; j < 100; j++) {
+          await m.push(`q:${i}`, j)
+        }
+      }
+
+      let count = 0
+      let maxActive = 0
+      let active = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, concurrent: 10 }, async (queue, job) => {
+        count++
+        active++
+        await sleep(Math.random() * 10)
+        if (expecting[queue] === null) {
+          assert.fail('Unexpected queue')
+        }
+        assert.equal(job, expecting[queue])
+        assert.ok(active <= 10)
+        if (maxActive < active) {
+          maxActive = active
+        }
+        expecting[queue]++
+        active--
+      })
+      await w.drain()
+      assert.equal(count, 2000)
+      assert.ok(maxActive > 1)
+      for (let i = 0; i < 20; i++) {
+        assert.equal(expecting[`q:${i}`], 100)
+        assert.equal(await r.llen(`test:queue:q:${i}`), 0)
+        assert.equal(await r.llen(`test:active:q:${i}`), 0)
+      }
+    })
+
+    it('should emit the jobs in order to multiple workers', async function () {
+      this.timeout(100000)
 
       const m = queues.createManager({ namespace: 'test', redis: r })
       let expecting = {}
@@ -123,6 +166,7 @@ describe('Worker', () => {
 
       const handler = async (queue, job) => {
         count++
+        await sleep(Math.random() * 10)
         if (expecting[queue] === null) {
           assert.fail('Unexpected queue')
         }
@@ -132,7 +176,7 @@ describe('Worker', () => {
 
       let workers = []
       for (let i = 0; i < 10; i++) {
-        const w = queues.createWorker({ namespace: 'test' }, handler)
+        const w = queues.createWorker({ namespace: 'test', concurrent: 5 }, handler)
         workers.push(w)
       }
       await Promise.all(workers.map(w => w.drain()))
@@ -293,7 +337,7 @@ describe('Worker', () => {
         count++
       })
 
-      w.on('error', (queue, errJobId) => {
+      w.on('deleted-error', (queue, errJobId) => {
         errorCount++
         assert.equal(queue, 'my:queue')
         assert.equal(errJobId, jobId)

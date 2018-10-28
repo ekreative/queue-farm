@@ -52,6 +52,15 @@ still jobs visible.
    
 ### Class `queueFarm.Manager`
 
+#### Event: `'push'`
+
+* `queue` `<String>` Name of the queue job.
+* `jobId` `<String>` Id of job pushed.
+* `job` `*` Data for the handler.
+* `options` `<Object>`.
+
+New job pushed.
+
 #### `async manager.push(queue, job, [options])`
 
 * `queue` `<String>` Name of the queue to push job to.
@@ -80,6 +89,7 @@ Delete a job from the given queue.
   * `allEmptySleep` `<Int>` Default `1000`.
   * `checkEmptyIterations` `<Int>` Default is `50`, how many iterations to wait
     before clearing active jobs queue.
+  * `concurrent` `<Int>` Default is `1`, how many jobs can be run concurrently.
 * `handler` `async <Function>` Function that receives jobs to be processed.
   Args are `(queue, job)`, just the same as passed to `push`. If errors are throw
   the job will be retried, up to retry limit. 
@@ -101,7 +111,7 @@ Started the job.
 
 Finished handling job.
 
-#### Event: `'handler-error'`
+#### Event: `'error'`
 
 * `queue` `<String>` Name of the queue job has errored on.
 * `jobId` `<String>` Id of job that errored.
@@ -116,6 +126,13 @@ Emitted when the handler throws an error.
 * `job` `*` The job data.
 
 Emitted when a job retry limit is ready.
+
+#### Event: `'deleted-error'`
+
+* `queue` `<String>` Name of the queue job has errored on.
+* `jobId` `<String>` Id of job that errored.
+
+Emitted when when trying to run a deleted job.
 
 #### Event: `'all-empty'`
 
