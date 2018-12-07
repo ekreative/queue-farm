@@ -26,19 +26,19 @@ describe('Worker', () => {
       let finishCount = 0
       let allEmptyCount = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         assert.equal(queue, 'my:queue')
         assert.equal(job, 'data')
       })
 
-      w.on('start', (queue, eventJobId) => {
+      w.on('start', (queue, [eventJobId]) => {
         startCount++
         assert.equal(eventJobId, jobId)
         assert.equal(queue, 'my:queue')
       })
 
-      w.on('finish', (queue, eventJobId) => {
+      w.on('finish', (queue, [eventJobId]) => {
         finishCount++
         assert.equal(eventJobId, jobId)
         assert.equal(queue, 'my:queue')
@@ -66,7 +66,7 @@ describe('Worker', () => {
       let expecting = { 'my:queue': { job: 'data', count: 0 }, 'another:queue': { job: 'data2', count: 0 } }
       let count = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         if (!expecting[queue]) {
           assert.fail('Unexpected queue')
@@ -92,7 +92,7 @@ describe('Worker', () => {
       let expecting = { 'my:queue': 0, 'another:queue': 0 }
       let count = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         await sleep(Math.random() * 10)
         if (expecting[queue] === null) {
@@ -125,7 +125,7 @@ describe('Worker', () => {
       let maxActive = 0
       let active = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r, concurrent: 10 }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r, concurrent: 10 }, async (queue, [job]) => {
         count++
         active++
         await sleep(Math.random() * 10)
@@ -164,7 +164,7 @@ describe('Worker', () => {
 
       let count = 0
 
-      const handler = async (queue, job) => {
+      const handler = async (queue, [job]) => {
         count++
         await sleep(Math.random() * 10)
         if (expecting[queue] === null) {
@@ -193,14 +193,16 @@ describe('Worker', () => {
 
     it('should retry a failed job', async () => {
       const m = queues.createManager({ namespace: 'test', redis: r })
-      await m.push('my:queue', 0)
-      await m.push('my:queue', 1)
+
+      const jobId = await m.push('my:queue', 0)
+      const jobId2 = await m.push('my:queue', 1)
 
       let expecting = [0, 0]
       let count = 0
       let handlerErrorCount = 0
+      let handleErrorExpected = [jobId, jobId, jobId2, jobId2]
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         if (expecting[job] === 0) {
           expecting[job]++
@@ -208,9 +210,10 @@ describe('Worker', () => {
         }
       })
 
-      w.on('handler-error', (queue, jobId, err) => {
+      w.on('handler-error', (queue, [errJobId], err) => {
         handlerErrorCount++
         assert.equal(queue, 'my:queue')
+        assert.equal(errJobId, handleErrorExpected[handlerErrorCount])
       })
 
       await w.drain()
@@ -228,17 +231,17 @@ describe('Worker', () => {
       let handlerErrorCount = 0
       let retryErrorCount = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         throw new Error('This job fails')
       })
 
-      w.on('handler-error', (queue, jobId, err) => {
+      w.on('handler-error', (queue, [jobId], err) => {
         handlerErrorCount++
         assert.equal(queue, 'my:queue')
       })
 
-      w.on('retry-limit', (queue, jobId, job) => {
+      w.on('retry-limit', (queue, [[jobId, job]]) => {
         retryErrorCount++
         assert.equal(queue, 'my:queue')
       })
@@ -264,7 +267,7 @@ describe('Worker', () => {
         .exec()
 
       let count = 0
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
       })
 
@@ -284,7 +287,7 @@ describe('Worker', () => {
         .exec()
 
       let count = 0
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
       })
 
@@ -296,7 +299,7 @@ describe('Worker', () => {
       let count = 0
       let noActiveQueuesCount = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
       })
 
@@ -315,7 +318,7 @@ describe('Worker', () => {
 
       let count = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r, checkEmptyIterations: 1 }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r, checkEmptyIterations: 1 }, async (queue, [job]) => {
         count++
       })
 
@@ -333,11 +336,11 @@ describe('Worker', () => {
       let count = 0
       let errorCount = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
       })
 
-      w.on('deleted-error', (queue, errJobId) => {
+      w.on('deleted-error', (queue, [errJobId]) => {
         errorCount++
         assert.equal(queue, 'my:queue')
         assert.equal(errJobId, jobId)
@@ -354,7 +357,7 @@ describe('Worker', () => {
 
       let count = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r, deleteJobs: false }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r, deleteJobs: false }, async (queue, [job]) => {
         count++
       })
 
@@ -375,7 +378,7 @@ describe('Worker', () => {
 
       let count = 0
 
-      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, job) => {
+      const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
         if (count === 1) {
           w.stop()
@@ -384,6 +387,220 @@ describe('Worker', () => {
 
       await w.listen()
       assert.equal(count, 1)
+    })
+  })
+
+  describe('#listen with batches', () => {
+    it('should emit the jobs in the queue', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      const jobId = await m.push('my:queue', 'data')
+      const jobId2 = await m.push('my:queue', 'data2')
+
+      let count = 0
+      let startCount = 0
+      let finishCount = 0
+      let allEmptyCount = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, batchSize: 2 }, async (queue, [job, job2]) => {
+        count++
+        assert.equal(queue, 'my:queue')
+        assert.equal(job, 'data')
+        assert.equal(job2, 'data2')
+      })
+
+      w.on('start', (queue, [eventJobId, eventJobId2]) => {
+        startCount++
+        assert.equal(eventJobId, jobId)
+        assert.equal(eventJobId2, jobId2)
+        assert.equal(queue, 'my:queue')
+      })
+
+      w.on('finish', (queue, [eventJobId, eventJobId2]) => {
+        finishCount++
+        assert.equal(eventJobId, jobId)
+        assert.equal(eventJobId2, jobId2)
+        assert.equal(queue, 'my:queue')
+      })
+
+      w.on('all-empty', () => {
+        allEmptyCount++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+      assert.equal(startCount, 1)
+      assert.equal(finishCount, 1)
+      assert.equal(allEmptyCount, 1)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
+      assert.deepEqual(await r.hgetall(`test:job:${jobId}`), {})
+    })
+
+    it('should emit the all the jobs in the queue in batches', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      for (let i = 0; i < 10; i++) {
+        await m.push('my:queue', i)
+      }
+
+      let count = 0
+      let jobI = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, batchSize: 2 }, async (queue, [job, job2]) => {
+        count++
+        assert.equal(jobI++, job)
+        assert.equal(jobI++, job2)
+      })
+
+      await w.drain()
+      assert.equal(count, 5)
+      assert.equal(jobI, 10)
+    })
+
+    it('should emit the all the jobs in multiple queues in batches', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      for (let i = 0; i < 10; i++) {
+        await m.push('my:queue', i)
+        await m.push('another:queue', i)
+      }
+
+      let count = 0
+      let expecting = { 'my:queue': 0, 'another:queue': 0 }
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, batchSize: 2 }, async (queue, [job, job2]) => {
+        count++
+        assert.equal(expecting[queue]++, job)
+        assert.equal(expecting[queue]++, job2)
+      })
+
+      await w.drain()
+      assert.equal(count, 10)
+      assert.equal(expecting['my:queue'], 10)
+      assert.equal(expecting['another:queue'], 10)
+    })
+
+    it('should retry a failed batch', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      await m.push('my:queue', 0)
+      await m.push('my:queue', 1)
+      await m.push('my:queue', 2)
+      await m.push('my:queue', 3)
+
+      let expecting = [0, 0, 0, 0]
+      let count = 0
+      let handlerErrorCount = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, batchSize: 2 }, async (queue, [job, job2]) => {
+        count++
+        expecting[job]++
+        expecting[job2]++
+
+        if (job === 0) {
+          throw new Error('This job fails')
+        }
+      })
+
+      w.on('handler-error', (queue, [jobId, jobId2], err) => {
+        handlerErrorCount++
+        assert.equal(queue, 'my:queue')
+      })
+
+      await w.drain()
+      assert.equal(count, 4)
+      assert.equal(handlerErrorCount, 3)
+      assert.equal(await r.llen('test:queue:my:queue'), 0)
+      assert.equal(await r.llen('test:active:my:queue'), 0)
+    })
+
+    it('should emit the jobs from multiple queues in order with concurrency', async function () {
+      this.timeout(20000)
+
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      let expecting = {}
+      for (let i = 0; i < 20; i++) {
+        expecting[`q:${i}`] = 0
+        for (let j = 0; j < 100; j++) {
+          await m.push(`q:${i}`, j)
+        }
+      }
+
+      let handlerCount = 0
+      let count = 0
+      let maxActive = 0
+      let active = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, concurrent: 10, batchSize: 10 }, async (queue, jobs) => {
+        handlerCount++
+        for (let job of jobs) {
+          count++
+          active++
+          await sleep(Math.random() * 10)
+          if (expecting[queue] === null) {
+            assert.fail('Unexpected queue')
+          }
+          assert.equal(job, expecting[queue])
+          assert.ok(active <= 10)
+          if (maxActive < active) {
+            maxActive = active
+          }
+          expecting[queue]++
+          active--
+        }
+      })
+      await w.drain()
+      assert.equal(handlerCount, 200)
+      assert.equal(count, 2000)
+      assert.ok(maxActive > 1)
+      for (let i = 0; i < 20; i++) {
+        assert.equal(expecting[`q:${i}`], 100)
+        assert.equal(await r.llen(`test:queue:q:${i}`), 0)
+        assert.equal(await r.llen(`test:active:q:${i}`), 0)
+      }
+    })
+
+    it('should emit the jobs in order to multiple workers', async function () {
+      this.timeout(100000)
+
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      let expecting = {}
+      for (let i = 0; i < 10; i++) {
+        expecting[`q:${i}`] = 0
+        for (let j = 0; j < 100; j++) {
+          await m.push(`q:${i}`, j)
+        }
+      }
+
+      let handlerCount = 0
+      let count = 0
+
+      const handler = async (queue, jobs) => {
+        handlerCount++
+        for (let job of jobs) {
+          count++
+          await sleep(Math.random() * 10)
+          if (expecting[queue] === null) {
+            assert.fail('Unexpected queue')
+          }
+          assert.equal(job, expecting[queue])
+          expecting[queue]++
+        }
+      }
+
+      let workers = []
+      for (let i = 0; i < 10; i++) {
+        const w = queues.createWorker({ namespace: 'test', concurrent: 5, batchSize: 5 }, handler)
+        workers.push(w)
+      }
+      await Promise.all(workers.map(w => w.drain()))
+
+      assert.equal(handlerCount, 200)
+      assert.equal(count, 1000)
+      for (let i = 0; i < 10; i++) {
+        assert.equal(expecting[`q:${i}`], 100)
+        assert.equal(await r.llen(`test:queue:q:${i}`), 0)
+        assert.equal(await r.llen(`test:active:q:${i}`), 0)
+      }
+
+      workers.map(w => w.redis.quit())
     })
   })
 })

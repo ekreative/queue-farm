@@ -23,8 +23,8 @@ Each named queue is executed in order, but different queues will be run out of o
 ```javascript
 const queueFarm = require('queue-farm')
 
-const worker = queueFarm.createWorker(async (queue, job) => {
-  console.log(`Handle a job from ${queue}`, job)  
+const worker = queueFarm.createWorker(async (queue, [job]) => {
+  console.log(`Handle a job from ${queue}`, job)
 })
 worker.listen()
 ```
@@ -90,8 +90,9 @@ Delete a job from the given queue.
   * `checkEmptyIterations` `<Int>` Default is `50`, how many iterations to wait
     before clearing active jobs queue.
   * `concurrent` `<Int>` Default is `1`, how many jobs can be run concurrently.
+  * `batchSize` `<Int>` Default is `1`, how many jobs to return in a batch.
 * `handler` `async <Function>` Function that receives jobs to be processed.
-  Args are `(queue, job)`, just the same as passed to `push`. If errors are throw
+  Args are `(queue, jobs)`, just the same as passed to `push`. If errors are throw
   the job will be retried, up to retry limit. 
 * Returns: `<queueFarm.Worker>`.
    
@@ -100,21 +101,21 @@ Delete a job from the given queue.
 #### Event: `'start'`
 
 * `queue` `<String>` Name of the queue job is starting on.
-* `jobId` `<String>` Id of job starting now.
+* `jobIds` `[<String>]` Ids of jobs starting now.
 
 Started the job.
 
 #### Event: `'finish'`
 
 * `queue` `<String>` Name of the queue job is finished on.
-* `jobId` `<String>` Id of job finished now.
+* `jobIds` `[<String>]` Ids of jobs finished now.
 
 Finished handling job.
 
 #### Event: `'error'`
 
 * `queue` `<String>` Name of the queue job has errored on.
-* `jobId` `<String>` Id of job that errored.
+* `jobIds` `[<String>]` Ids of jobs that errored.
 * `err` `*` The error thrown by the handler.
 
 Emitted when the handler throws an error.
@@ -122,15 +123,14 @@ Emitted when the handler throws an error.
 #### Event: `'retry-limit'`
 
 * `queue` `<String>` Name of the queue job has errored on.
-* `jobId` `<String>` Id of job that errored.
-* `job` `*` The job data.
+* `jobs` `[[<String>, *]]` Pairs of Job id and job data
 
 Emitted when a job retry limit is ready.
 
 #### Event: `'deleted-error'`
 
 * `queue` `<String>` Name of the queue job has errored on.
-* `jobId` `<String>` Id of job that errored.
+* `jobIds` `[<String>]` Ids of jobs that errored.
 
 Emitted when when trying to run a deleted job.
 
