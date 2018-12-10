@@ -1,5 +1,14 @@
 # Changelog
 
+### 2.0.1
+
+- Missing changelog
+
+### 2.0.0
+
+- Support for receving jobs in batches
+- Changes the signiture of handler and event handlers
+
 ### 1.0.3
 
 - Renamed some options.
