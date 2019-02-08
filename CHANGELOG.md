@@ -1,5 +1,13 @@
 # Changelog
 
+### 2.0.3
+
+- Missing changelog
+
+### 2.0.2
+
+- Remove :fetchAt keys from database on checkEmptyQueue
+
 ### 2.0.1
 
 - Missing changelog
