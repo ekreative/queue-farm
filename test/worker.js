@@ -327,6 +327,21 @@ describe('Worker', () => {
       assert.equal(await r.scard('test:active'), 0)
     })
 
+    it('should delete fetchAt when clearing empty queues from active list', async () => {
+      const m = queues.createManager({ namespace: 'test', redis: r })
+      await m.push('my:queue', 0)
+
+      let count = 0
+
+      const w = queues.createWorker({ namespace: 'test', redis: r, checkEmptyIterations: 1 }, async (queue, [job]) => {
+        count++
+      })
+
+      await w.drain()
+      assert.equal(count, 1)
+      assert.equal(await r.get('test:active:my:queue:fetchAt'), null)
+    })
+
     it('should emit an error when job data is missing', async () => {
       const m = queues.createManager({ namespace: 'test', redis: r })
       const jobId = await m.push('my:queue', 0)
