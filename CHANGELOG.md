@@ -1,5 +1,9 @@
 # Changelog
 
+### 2.1.1
+
+- Rename logger option `includeJobs` to `extended`.
+
 ### 2.1.0
 
 - Add `Logger` to make it easy to log everything happening in the queue.
@@ -11,20 +15,20 @@
 
 ### 2.0.3
 
-- Missing changelog
+- Missing changelog.
 
 ### 2.0.2
 
-- Remove :fetchAt keys from database on checkEmptyQueue
+- Remove :fetchAt keys from database on checkEmptyQueue.
 
 ### 2.0.1
 
-- Missing changelog
+- Missing changelog.
 
 ### 2.0.0
 
-- Support for receiving jobs in batches
-- Changes the signiture of handler and event handlers
+- Support for receiving jobs in batches.
+- Changes the signiture of handler and event handlers.
 
 ### 1.0.3
 

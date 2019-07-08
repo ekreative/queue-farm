@@ -188,7 +188,7 @@ Listens for jobs until all the queues are empty and then returns.
 * `manager` `<queueFarm.Manager>`
 * `logger` `<Logger>` | `<Console>`
 * `options` `<Object>` Extends `queueFarm.createManager options`
-  * `includeJobs` `<Bool>` Default `false`. To include the jobs in the logs.
+  * `extended` `<Bool>` Default `false`. To include the extended meta in the logs.
   * `exceptEvents` `[<String>]`Names of events not to listen for. Defaults to
     `['all-empty', 'no-active-queues']`
 * Returns: `<queueFarm.Logger>`.
