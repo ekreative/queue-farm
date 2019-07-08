@@ -1,5 +1,9 @@
 # Changelog
 
+### 2.2.1
+
+- Change default manager `id`.
+
 ### 2.2.0
 
 - Add `defaultMeta` option to logger.

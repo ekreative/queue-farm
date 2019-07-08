@@ -49,7 +49,7 @@ still jobs visible.
     for a job to be completed before its counted as failed and should be retried.
   * `maxAttempts`, `<Int>` Default is `3`, number of times the job will be attempted
     before it is discarded. 
-  * `id`, `<String>` Default is `'{os.hostname()}XXXX'`, where XXXX is 4 random digits.
+  * `id`, `<String>` Default is `'{os.hostname()}:XXXX'`, where XXXX is 4 random digits.
     An id for the manager, useful to distinguish multiple running workers.
 * Returns: `<queueFarm.Manager>`.
    
