@@ -1,22 +1,15 @@
 const queues = require('../index')
 
-const worker = queues.createWorker('example', async (queue, job) => {
+const worker = queues.createWorker({ namespace: 'example' }, async (queue, job) => {
   console.log(`Worker: Handling a job`, queue, job)
 })
+queues.createLogger(worker, console).on([])
 
 worker.listen().then(() => {
   console.log('finished listening')
   worker.redis.quit()
 }).catch(err => {
   console.log('caught', err)
-})
-
-worker.on('no-active-queues', () => {
-  console.log('Sleeping with no active queues')
-})
-
-worker.on('all-empty', () => {
-  console.log('Sleeping because all queues are empty')
 })
 
 process.on('SIGINT', () => {
