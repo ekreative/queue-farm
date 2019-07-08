@@ -1,5 +1,9 @@
 # Changelog
 
+### 2.2.0
+
+- Add `defaultMeta` option to logger.
+
 ### 2.1.1
 
 - Rename logger option `includeJobs` to `extended`.

@@ -191,6 +191,7 @@ Listens for jobs until all the queues are empty and then returns.
   * `extended` `<Bool>` Default `false`. To include the extended meta in the logs.
   * `exceptEvents` `[<String>]`Names of events not to listen for. Defaults to
     `['all-empty', 'no-active-queues']`
+  * `defaultMeta` `*` Data to be added to log meta.
 * Returns: `<queueFarm.Logger>`.
 
 ### Class `queueFarm.Logger`
