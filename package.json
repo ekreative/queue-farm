@@ -19,9 +19,9 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "ioredis": "^4.2.0",
-    "mocha": "^5.2.0",
-    "nyc": "^13.1.0",
+    "ioredis": "^4.11.1",
+    "mocha": "^6.1.4",
+    "nyc": "^14.1.1",
     "standard": "^12.0.1"
   },
   "peerDependencies": {
