@@ -63,7 +63,7 @@ describe('Worker', () => {
       await m.push('my:queue', 'data')
       await m.push('another:queue', 'data2')
 
-      let expecting = { 'my:queue': { job: 'data', count: 0 }, 'another:queue': { job: 'data2', count: 0 } }
+      const expecting = { 'my:queue': { job: 'data', count: 0 }, 'another:queue': { job: 'data2', count: 0 } }
       let count = 0
 
       const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
@@ -89,7 +89,7 @@ describe('Worker', () => {
       await m.push('my:queue', 1)
       await m.push('another:queue', 1)
 
-      let expecting = { 'my:queue': 0, 'another:queue': 0 }
+      const expecting = { 'my:queue': 0, 'another:queue': 0 }
       let count = 0
 
       const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
@@ -113,7 +113,7 @@ describe('Worker', () => {
       this.timeout(10000)
 
       const m = queues.createManager({ namespace: 'test', redis: r })
-      let expecting = {}
+      const expecting = {}
       for (let i = 0; i < 20; i++) {
         expecting[`q:${i}`] = 0
         for (let j = 0; j < 100; j++) {
@@ -154,7 +154,7 @@ describe('Worker', () => {
       this.timeout(100000)
 
       const m = queues.createManager({ namespace: 'test', redis: r })
-      let expecting = {}
+      const expecting = {}
       for (let i = 0; i < 10; i++) {
         expecting[`q:${i}`] = 0
         for (let j = 0; j < 100; j++) {
@@ -174,7 +174,7 @@ describe('Worker', () => {
         expecting[queue]++
       }
 
-      let workers = []
+      const workers = []
       for (let i = 0; i < 10; i++) {
         const w = queues.createWorker({ namespace: 'test', concurrent: 5 }, handler)
         workers.push(w)
@@ -197,10 +197,10 @@ describe('Worker', () => {
       const jobId = await m.push('my:queue', 0)
       const jobId2 = await m.push('my:queue', 1)
 
-      let expecting = [0, 0]
+      const expecting = [0, 0]
       let count = 0
       let handlerErrorCount = 0
-      let handleErrorExpected = [jobId, jobId, jobId2, jobId2]
+      const handleErrorExpected = [jobId, jobId, jobId2, jobId2]
 
       const w = queues.createWorker({ namespace: 'test', redis: r }, async (queue, [job]) => {
         count++
@@ -479,7 +479,7 @@ describe('Worker', () => {
       }
 
       let count = 0
-      let expecting = { 'my:queue': 0, 'another:queue': 0 }
+      const expecting = { 'my:queue': 0, 'another:queue': 0 }
 
       const w = queues.createWorker({ namespace: 'test', redis: r, batchSize: 2 }, async (queue, [job, job2]) => {
         count++
@@ -500,7 +500,7 @@ describe('Worker', () => {
       await m.push('my:queue', 2)
       await m.push('my:queue', 3)
 
-      let expecting = [0, 0, 0, 0]
+      const expecting = [0, 0, 0, 0]
       let count = 0
       let handlerErrorCount = 0
 
@@ -530,7 +530,7 @@ describe('Worker', () => {
       this.timeout(20000)
 
       const m = queues.createManager({ namespace: 'test', redis: r })
-      let expecting = {}
+      const expecting = {}
       for (let i = 0; i < 20; i++) {
         expecting[`q:${i}`] = 0
         for (let j = 0; j < 100; j++) {
@@ -600,7 +600,7 @@ describe('Worker', () => {
         }
       }
 
-      let workers = []
+      const workers = []
       for (let i = 0; i < 10; i++) {
         const w = queues.createWorker({ namespace: 'test', concurrent: 5, batchSize: 5 }, handler)
         workers.push(w)

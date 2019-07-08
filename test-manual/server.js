@@ -1,7 +1,8 @@
 const http = require('http')
 const queues = require('../index')
 
-const m = queues.createManager('example')
+const m = queues.createManager({ namespace: 'example', timeout: 5000 })
+queues.createLogger(m, console, { includeJobs: true }).on()
 
 const server = http.createServer((req, res) => {
   let body = []
@@ -11,7 +12,7 @@ const server = http.createServer((req, res) => {
     })
     .on('end', () => {
       body = Buffer.concat(body).toString()
-      m.push(req.url, req.body)
+      m.push(req.url, body)
       res.end()
     })
 })

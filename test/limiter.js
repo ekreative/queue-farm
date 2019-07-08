@@ -5,7 +5,7 @@ const sleep = require('../lib/sleep')
 
 describe('Limiter', () => {
   it('should execute in order when concurrency=1', async () => {
-    let limit = limiter.createLimiter(1)
+    const limit = limiter.createLimiter(1)
 
     let resultCount = 0
 
@@ -14,7 +14,7 @@ describe('Limiter', () => {
     })
 
     let order = 0
-    let fn = (i) => async () => {
+    const fn = (i) => async () => {
       await sleep(Math.random() * 100)
       assert.equal(order++, i)
 
@@ -31,7 +31,7 @@ describe('Limiter', () => {
   })
 
   it('should execute all jobs', async () => {
-    let limit = limiter.createLimiter(10)
+    const limit = limiter.createLimiter(10)
 
     let resultCount = 0
 
@@ -41,7 +41,7 @@ describe('Limiter', () => {
 
     let count = 0
     let allSet = false
-    let fn = (i) => async () => {
+    const fn = (i) => async () => {
       await sleep(100)
       assert.equal(allSet, true)
       count++
@@ -57,7 +57,7 @@ describe('Limiter', () => {
   })
 
   it('should execute all jobs that throw errors', async () => {
-    let limit = limiter.createLimiter(10)
+    const limit = limiter.createLimiter(10)
 
     let resultCount = 0
     let errorCount = 0
@@ -72,7 +72,7 @@ describe('Limiter', () => {
 
     let count = 0
     let allSet = false
-    let fn = (i) => async () => {
+    const fn = (i) => async () => {
       await sleep(Math.random() * 100)
       assert.equal(allSet, true)
       count++
@@ -91,7 +91,7 @@ describe('Limiter', () => {
   })
 
   it('should execute all jobs only 2 at a time', async () => {
-    let limit = limiter.createLimiter(2)
+    const limit = limiter.createLimiter(2)
 
     let resultCount = 0
 
@@ -101,7 +101,7 @@ describe('Limiter', () => {
 
     let count = 0
     let active = 0
-    let fn = (i) => async () => {
+    const fn = (i) => async () => {
       active++
       await sleep(Math.random() * 100)
       active--
@@ -120,7 +120,7 @@ describe('Limiter', () => {
   })
 
   it('should execute all jobs only 20 at a time', async () => {
-    let limit = limiter.createLimiter(20)
+    const limit = limiter.createLimiter(20)
 
     let resultCount = 0
 
@@ -130,7 +130,7 @@ describe('Limiter', () => {
 
     let count = 0
     let active = 0
-    let fn = (i) => async () => {
+    const fn = (i) => async () => {
       active++
       await sleep(Math.random() * 100)
       active--

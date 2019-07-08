@@ -1,5 +1,14 @@
 # Changelog
 
+### 2.1.0
+
+- Add `Logger` to make it easy to log everything happening in the queue.
+- Timeout for batches is now the total timeout, not the max of the batch.
+- Add worker ids to better track which worker is doing what.
+- Add documentation of redis implementation.
+- Add invalid data event for when JSON data cannot be parsed.
+- Add more fields tracking when jobs are handled.
+
 ### 2.0.3
 
 - Missing changelog
@@ -14,7 +23,7 @@
 
 ### 2.0.0
 
-- Support for receving jobs in batches
+- Support for receiving jobs in batches
 - Changes the signiture of handler and event handlers
 
 ### 1.0.3

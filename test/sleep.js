@@ -4,9 +4,9 @@ const sleep = require('../lib/sleep')
 
 describe('sleep(timeout)', () => {
   it('should resolve after timeout', async () => {
-    let b = Date.now()
+    const b = Date.now()
     await sleep(100)
-    let a = Date.now()
+    const a = Date.now()
 
     // Its a big unpredictable, so smaller check
     assert.ok(a - b > 50)
